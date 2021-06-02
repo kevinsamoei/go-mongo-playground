@@ -96,4 +96,6 @@ func main() {
 
 	// truncate after each run
 	clctn.Drop(ctx)
+	// delete the test db
+	mClient.Database("test").Drop(ctx)
 }
