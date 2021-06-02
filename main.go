@@ -20,7 +20,6 @@ func (t *User) String() string {
 }
 
 func main() {
-	fmt.Println("vim-go")
 	ctx := context.Background()
 	opts := options.Client().ApplyURI("mongodb://localhost:27017")
 
@@ -30,33 +29,34 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// ensure we are connected
 	err = mClient.Ping(ctx, nil)
 	if err != nil {
 		log.Fatalf("could not connect to mongo: %v", err)
 	}
 	defer mClient.Disconnect(ctx)
-
 	fmt.Println("Connected to the db")
+
+	// create collection users
 	clctn := mClient.Database("test").Collection("users")
 
+	// create a unique index on the "name" field
 	i, err := clctn.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: bson.M{"name": -1}, Options: options.Index().SetUnique(true)})
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Index created: ", i)
 
+	// Insert a record
 	res, err := clctn.InsertOne(ctx, User{"Kevin", 20})
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Insert result: ", res)
 
-	filter := bson.D{{
-		"name", "Kevin",
-	}}
-
+	// find by name
 	var result User
-	err = clctn.FindOne(ctx, filter).Decode(&result)
+	err = clctn.FindOne(ctx, bson.D{{"name", "Kevin"}}).Decode(&result)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -87,6 +87,12 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println("All items: ", users)
+
+	// test unique index
+	_, err = clctn.InsertOne(ctx, User{"Kevin", 60})
+	if err != nil {
+		fmt.Println("Failed to insert: ", err) // expected
+	}
 
 	// truncate after each run
 	clctn.Drop(ctx)
